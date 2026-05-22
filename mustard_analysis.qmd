@@ -1,0 +1,589 @@
+---
+title: "Behavioral Barriers to Financial Consistency Among Nigerian Personal Banking Customers"
+author: "Chinedu Udeze"
+date: today
+format:
+  html:
+    theme: flatly
+    toc: true
+    toc-depth: 3
+    toc-location: left
+    toc-title: "Contents"
+    code-fold: true
+    code-summary: "Show code"
+    self-contained: true
+    fig-width: 9
+    fig-height: 6
+    number-sections: true
+    smooth-scroll: true
+    highlight-style: github
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, warning = FALSE, message = FALSE)
+
+library(tidyverse)
+library(psych)
+library(knitr)
+library(kableExtra)
+library(corrplot)
+library(car)
+library(scales)
+library(ggplot2)
+library(plotly)
+
+df <- read.csv("C:/Users/dz_ch/OneDrive/Desktop/mustard_analysis/mustard_clean.csv")
+
+df <- df |> 
+  mutate(platform_clean = case_when(
+    str_detect(tolower(primary_platform), "gt|gtb|guaranty") ~ "GTBank",
+    str_detect(tolower(primary_platform), "access") ~ "Access Bank",
+    str_detect(tolower(primary_platform), "first bank|firstbank|fbn") ~ "First Bank",
+    str_detect(tolower(primary_platform), "opay|opat") ~ "OPay",
+    str_detect(tolower(primary_platform), "stanbic") ~ "Stanbic IBTC",
+    str_detect(tolower(primary_platform), "uba") ~ "UBA",
+    str_detect(tolower(primary_platform), "zenith") ~ "Zenith Bank",
+    str_detect(tolower(primary_platform), "kuda") ~ "Kuda",
+    str_detect(tolower(primary_platform), "piggy") ~ "PiggyVest",
+    str_detect(tolower(primary_platform), "moniepoint|monie point|monipoint") ~ "Moniepoint",
+    str_detect(tolower(primary_platform), "palmpay|palmay") ~ "PalmPay",
+    str_detect(tolower(primary_platform), "sterling") ~ "Sterling Bank",
+    str_detect(tolower(primary_platform), "wema") ~ "Wema Bank",
+    str_detect(tolower(primary_platform), "fidelity") ~ "Fidelity Bank",
+    TRUE ~ "Other"
+  ))
+
+theme_set(theme_minimal(base_size = 13))
+```
+
+# Executive Summary
+
+Nigerian personal banking customers understand what good financial management looks like and genuinely want to do it. The problem is that they don't do it consistently. This study surveyed 144 personal banking customers in Nigeria, measuring financial awareness, financial management consistency, and five behavioral trait scores: procrastination, self-control, impulsivity, avoidance, and delayed gratification tolerance.
+
+The headline finding is a 1.10-point gap between financial awareness (mean = 4.34/5) and financial consistency (mean = 3.23/5), confirmed as statistically significant by a paired t-test (t(143) = 13.23, p < .001). The barrier is not informational. 83% of respondents understand the importance of expense tracking, but only 28% do it consistently, a 55 percentage point gap. The barrier is behavioral.
+
+Multiple regression analysis revealed that the five behavioral traits collectively explain 39.1% of variance in financial consistency (R² = .391, p < .001). Procrastination is the dominant predictor (β = −.466, p < .001), followed by self-control (β = −.302, p = .006). Avoidance and delayed gratification were not significant independent predictors.
+
+The recommendation for Moniepoint is clear: stop designing for the disciplined user. Design for the procrastinator. Automated reminders, frictionless defaults, and behavioral nudges will do more to improve customer financial consistency than any amount of financial education content.
+
+---
+
+# Professional Disclosure
+
+**Job Title:** User Experience Researcher, Moniepoint
+
+**Organisation:** Moniepoint is a Nigerian fintech company providing personal and business banking services. As a UX Researcher, my work involves understanding how customers behave on the platform, not just what they say they want, but what they actually do and why there are gaps between the two.
+
+**Relevance of Each Technique to My Work:**
+
+**Exploratory Data Analysis:** EDA is how every research project at Moniepoint starts. Before drawing conclusions from survey data, I need to understand the shape of the data, identify quality issues, and spot patterns that guide the analysis. This is not an academic exercise; it directly determines which findings are trustworthy and which need to be qualified. This technique maps to Chapter 4 of Adi (2026).
+
+**Data Visualisation:** Communicating research findings to product managers, designers, and executives requires visualisations that tell a clear story without requiring statistical literacy. Every chart in this document is designed to be shown to a non-technical stakeholder. This technique maps to Chapter 5 of Adi (2026).
+
+**Hypothesis Testing:** Moniepoint makes product decisions based on research. Hypothesis testing is how I distinguish a real pattern in the data from random noise. The paired t-test in this analysis formally confirms the awareness-consistency gap, a finding that directly informs whether Moniepoint should invest in financial education or behavioral design. This technique maps to Chapter 6 of Adi (2026).
+
+**Correlation Analysis:** Understanding which behavioral traits travel together helps Moniepoint design for behavioral clusters rather than individual traits. If procrastination and avoidance co-occur in the same customers, a single intervention can address both. This technique maps to Chapter 8 of Adi (2026).
+
+**Regression Analysis:** The regression model tells Moniepoint which behavioral traits to prioritise in product design. Not all traits matter equally; procrastination and self-control are the significant predictors. That prioritisation directly informs feature roadmap decisions. This technique maps to Chapter 9 of Adi (2026).
+
+---
+
+# Data Collection and Sampling
+
+**Source:** Primary data collected via an online survey designed and administered by the research team at Moniepoint as part of a behavioral finance study on Nigerian personal banking customers.
+
+**Collection Method:** Google Forms survey distributed via WhatsApp, email, and social media between March and April 2026. The survey was designed in two parts: a quantitative questionnaire covering financial awareness, consistency behaviors, and validated behavioral trait scales; and a qualitative in-depth interview guide administered to a subset of eight respondents.
+
+**Sampling Frame:** Nigerian personal banking customers who are aware of financial management principles and desire to manage their finances better. Respondents were recruited through Moniepoint's customer network, professional contacts, and social media.
+
+**Sample Size:** 150 raw responses were collected. Six responses were removed during cleaning for incomplete or inconsistent data, leaving 144 valid respondents for analysis. A sample of 144 is sufficient for multiple regression with five predictors; the rule of thumb of at least 10-20 observations per predictor yields a minimum of 50-100, which this sample comfortably exceeds.
+
+**Time Period:** Data collected between March and April 2026.
+
+**Ethical Notes:** Informed consent was obtained from all respondents before participation. No personally identifiable information was collected in the survey. Interview recordings were stored securely and accessible only to the research team. Income was an optional field. Participants were free to withdraw at any time. Ethical clearance: N/A (non-interventional survey research with voluntary participation and no PII collected).
+
+**Validated Scales Used:**
+
+- Self-Control: Brief Self-Control Scale (Tangney, Baumeister & Boone, 2004)
+- Impulsivity: UPPS-P Impulsive Behavior Scale (Lynam et al., 2006)
+- Procrastination: General Procrastination Scale (Lay, 1986)
+
+**Data Citation:** Udeze, C. (2026). *Behavioral barriers to financial consistency among Nigerian personal banking customers* [Dataset]. Collected from Moniepoint, Lagos, Nigeria. Data available on request from the author.
+
+---
+
+# Data Description
+
+```{r data-description}
+df |> 
+  select(awareness_score, consistency_score, self_control_score,
+         impulsivity_score, procrastination_score, avoidance_score,
+         delayed_gratification_score) |> 
+  describe() |> 
+  select(n, mean, sd, median, min, max, skew, kurtosis) |> 
+  round(2) |> 
+  kable(caption = "Table 1: Descriptive Statistics — Composite Behavioral Scores (n = 144)",
+        col.names = c("n", "Mean", "SD", "Median", "Min", "Max", "Skew", "Kurtosis")) |> 
+  kable_styling(bootstrap_options = c("striped", "hover"), full_width = FALSE)
+```
+
+`awareness_score` shows significant negative skew (skew = −1.96, kurtosis = 5.69), indicating a ceiling effect consistent with the sampling frame; respondents were pre-screened as financially aware individuals. `consistency_score` is approximately normally distributed (skew = −0.18), making it suitable as the dependent variable in regression analysis. All five behavioral trait scores are roughly symmetric with skew values between −0.83 and 0.65.
+
+**Missing Value Analysis:**
+
+```{r missing-values}
+colSums(is.na(df)) |> 
+  sort(decreasing = TRUE) |> 
+  head(15) |> 
+  kable(caption = "Table 2: Missing Values by Column (Top 15)",
+        col.names = c("Missing Count")) |> 
+  kable_styling(bootstrap_options = c("striped", "hover"), full_width = FALSE)
+```
+
+Missing values were concentrated in optional free-text fields by design. All composite behavioral scores and Likert-scale items used in quantitative analysis had zero missing values, confirming full data integrity across the analytical variables.
+
+---
+
+# Exploratory Data Analysis
+
+Exploratory Data Analysis is the process of getting to know your data before drawing any conclusions from it. It involves computing summary statistics, checking the shape of distributions, identifying missing values, and spotting anomalies or outliers that could distort later analysis. The goal is not to find answers yet; it is to understand what the data can and cannot reliably tell you (Adi, 2026, Ch. 4).
+
+In a UX research context at Moniepoint, EDA is the difference between trusting a finding and being embarrassed by it in front of a product team. A score distribution that piles up at one end of the scale, a variable with unexpected missing values, or a handful of respondents whose answers look like data entry errors; all of these need to be surfaced and addressed before any statistical test is run. EDA is also where the first story emerges from the data. The awareness-consistency gap visible in the summary statistics below was not a hypothesis that went in; it was a pattern that came out of the data during this phase and became the organising finding of the entire analysis.
+
+```{r eda-gap}
+gap_data <- data.frame(
+  Measure = c("Financial Awareness", "Financial Consistency"),
+  Mean = c(mean(df$awareness_score), mean(df$consistency_score))
+)
+
+ggplot(gap_data, aes(x = Measure, y = Mean, fill = Measure)) +
+  geom_col(width = 0.5, show.legend = FALSE) +
+  geom_text(aes(label = round(Mean, 2)), vjust = -0.5, size = 4.5) +
+  scale_fill_manual(values = c("Financial Awareness" = "#2C7BB6",
+                                "Financial Consistency" = "#D7191C")) +
+  scale_y_continuous(limits = c(0, 5)) +
+  labs(title = "Nigerians Know But Don't Do",
+       subtitle = "Mean scores on awareness vs actual financial consistency (scale 1-5)",
+       x = NULL, y = "Mean Score")
+```
+
+The mean awareness-consistency gap is `r round(mean(df$awareness_score) - mean(df$consistency_score), 2)` points on a 5-point scale. Respondents score substantially higher on knowing what good financial management looks like than on actually doing it consistently.
+
+```{r eda-barriers}
+barrier_data <- data.frame(
+  Trait = c("Procrastination", "Impulsivity", "Avoidance",
+            "Self-Control", "Delayed Gratification"),
+  Mean = c(mean(df$procrastination_score), mean(df$impulsivity_score),
+           mean(df$avoidance_score), mean(df$self_control_score),
+           mean(df$delayed_gratification_score))
+) |> arrange(desc(Mean))
+
+ggplot(barrier_data, aes(x = reorder(Trait, Mean), y = Mean, fill = Mean)) +
+  geom_col(show.legend = FALSE) +
+  geom_text(aes(label = round(Mean, 2)), hjust = -0.2, size = 4) +
+  scale_fill_gradient(low = "#FEE08B", high = "#D7191C") +
+  scale_y_continuous(limits = c(0, 3.5)) +
+  coord_flip() +
+  labs(title = "Procrastination is the Strongest Behavioral Barrier",
+       subtitle = "Mean scores across five behavioral traits (scale 1-5, higher = more problematic)",
+       x = NULL, y = "Mean Score")
+```
+
+All five behavioral trait means fall below the scale midpoint of 3.0, indicating the sample is not characterised by extreme behavioral dysfunction. However, even moderate levels of these traits are sufficient to undermine financial consistency when applied to friction-heavy tasks like budgeting and expense tracking.
+
+```{r eda-distribution}
+ggplot(df, aes(x = consistency_score)) +
+  geom_histogram(binwidth = 0.4, fill = "#2C7BB6", color = "white") +
+  geom_vline(xintercept = mean(df$consistency_score),
+             linetype = "dashed", color = "#D7191C", linewidth = 1) +
+  annotate("text", x = mean(df$consistency_score) + 0.3, y = 20,
+           label = paste("Mean =", round(mean(df$consistency_score), 2)),
+           color = "#D7191C", size = 4) +
+  labs(title = "Financial Consistency is Spread Widely Across the Sample",
+       subtitle = "Distribution of consistency scores (n = 144)",
+       x = "Consistency Score", y = "Number of Respondents")
+```
+
+**Outlier Detection:**
+
+```{r eda-outliers}
+outlier_check <- df |> 
+  select(consistency_score, procrastination_score, self_control_score,
+         impulsivity_score, avoidance_score, delayed_gratification_score) |> 
+  mutate(row_id = row_number()) |> 
+  filter(
+    consistency_score < (mean(consistency_score) - 3*sd(consistency_score)) |
+    consistency_score > (mean(consistency_score) + 3*sd(consistency_score)) |
+    procrastination_score < (mean(procrastination_score) - 3*sd(procrastination_score)) |
+    procrastination_score > (mean(procrastination_score) + 3*sd(procrastination_score))
+  )
+
+if(nrow(outlier_check) == 0) {
+  cat("No extreme outliers detected beyond 3 standard deviations in the key composite scores.")
+} else {
+  outlier_check |> 
+    kable(caption = "Table 3: Potential Outliers (beyond 3 SD)") |> 
+    kable_styling(bootstrap_options = c("striped", "hover"), full_width = FALSE)
+}
+```
+
+No respondents fell beyond three standard deviations from the mean on the key composite scores, confirming the absence of extreme outliers that would distort the analysis. Observations 138 and 142 were flagged as having high leverage in the regression diagnostics but did not exceed Cook's distance thresholds and were retained.
+
+---
+
+# Data Visualisation
+
+Data visualisation translates numerical patterns into images that human brains can process intuitively. A well-chosen chart communicates in seconds what a table of numbers cannot communicate in minutes. The grammar of graphics, the framework underlying ggplot2, treats every chart as a mapping of data variables to visual properties: position, colour, size, shape. Choosing the right mapping is an analytical decision, not an aesthetic one (Adi, 2026, Ch. 5).
+
+For this analysis, visualisation serves a specific purpose beyond exploration. Every chart in this section is designed to be shown to a non-technical stakeholder, a product manager, a designer, or a Moniepoint executive, and to land a single clear point without requiring any statistical background to interpret. Bar charts communicate comparisons. Scatter plots show relationships. Box plots show distributions and variability. The choice of chart type in each case was driven by what the data needed to say, not by variety. The scatter plot of procrastination against consistency, for instance, was chosen over a bar chart because the relationship between two continuous variables is better communicated through the shape of a point cloud and a trend line than through grouped averages, which would collapse the individual variation that makes the finding compelling.
+
+```{r viz-scatter}
+p_scatter <- df |> 
+  plot_ly(x = ~procrastination_score, y = ~consistency_score,
+          type = "scatter", mode = "markers",
+          marker = list(color = "#2C7BB6", opacity = 0.5, size = 8),
+          hovertemplate = paste("Procrastination: %{x}<br>Consistency: %{y}<extra></extra>")) |> 
+  add_lines(x = ~procrastination_score,
+            y = ~fitted(lm(consistency_score ~ procrastination_score, data = df)),
+            line = list(color = "#D7191C", width = 2),
+            name = "Trend line",
+            hoverinfo = "skip") |> 
+  layout(title = list(text = "More Procrastination, Less Financial Consistency",
+                      font = list(size = 14)),
+         xaxis = list(title = "Procrastination Score"),
+         yaxis = list(title = "Consistency Score"),
+         showlegend = FALSE)
+
+p_scatter
+```
+
+```{r viz-gender}
+ggplot(df, aes(x = gender, y = consistency_score, fill = gender)) +
+  geom_boxplot(show.legend = FALSE, width = 0.4) +
+  scale_fill_manual(values = c("Female" = "#2C7BB6", "Male" = "#D7191C")) +
+  labs(title = "Financial Consistency is Similar Across Gender",
+       subtitle = "Distribution of consistency scores by gender",
+       x = NULL, y = "Consistency Score")
+```
+
+```{r viz-platform}
+platform_data <- df |>
+  count(platform_clean) |>
+  arrange(desc(n)) |>
+  mutate(is_moniepoint = platform_clean == "Moniepoint")
+
+ggplot(platform_data, aes(x = reorder(platform_clean, n),
+                           y = n, fill = is_moniepoint)) +
+  geom_col(show.legend = FALSE) +
+  geom_text(aes(label = n), hjust = -0.2, size = 3.5) +
+  scale_fill_manual(values = c("FALSE" = "#AAAAAA", "TRUE" = "#D7191C")) +
+  scale_y_continuous(limits = c(0, 38)) +
+  coord_flip() +
+  labs(title = "GTBank Dominates Primary Banking — Moniepoint Has Room to Grow",
+       subtitle = "Primary platform by number of respondents (n = 144)",
+       x = NULL, y = "Number of Respondents")
+```
+
+```{r viz-features}
+feature_data <- data.frame(
+  Feature = c("Weekly Financial Summary", "Goal Tracking",
+              "Auto-Categorise Spending", "Personalised Budgets",
+              "Investment Options", "Spending Nudges"),
+  Mean = c(mean(df$feature_weekly_summary), mean(df$feature_goals),
+           mean(df$feature_autocategorize), mean(df$feature_personalized_budget),
+           mean(df$feature_investments), mean(df$feature_nudges))
+) |> arrange(desc(Mean))
+
+ggplot(feature_data, aes(x = reorder(Feature, Mean), y = Mean, fill = Mean)) +
+  geom_col(show.legend = FALSE) +
+  geom_text(aes(label = round(Mean, 2)), hjust = -0.2, size = 4) +
+  scale_fill_gradient(low = "#FEE08B", high = "#2C7BB6") +
+  scale_y_continuous(limits = c(0, 5)) +
+  coord_flip() +
+  labs(title = "Customers Want Tools That Do the Work For Them",
+       subtitle = "Mean desirability rating for potential platform features (scale 1-5, n = 144)",
+       x = NULL, y = "Mean Desirability Rating")
+```
+
+```{r viz-selfaware}
+ggplot(df, aes(x = factor(self_aware_level), y = consistency_score,
+               fill = factor(self_aware_level))) +
+  geom_boxplot(show.legend = FALSE) +
+  scale_fill_brewer(palette = "Blues") +
+  scale_x_discrete(labels = c("1" = "Not at all", "2" = "Slightly",
+                               "3" = "Moderately", "4" = "Well",
+                               "5" = "Very well")) +
+  labs(title = "More Self-Aware Customers Are More Financially Consistent",
+       subtitle = "Consistency scores by self-reported level of self-awareness (n = 144)",
+       x = "How well do you understand your own financial tendencies?",
+       y = "Consistency Score")
+```
+
+```{r viz-saving}
+saving_data <- df |>
+  count(saving_pattern) |>
+  mutate(saving_pattern = case_when(
+    str_detect(saving_pattern, "fixed amount") ~ "Save fixed amount monthly",
+    str_detect(saving_pattern, "left over") ~ "Save leftover at month end",
+    str_detect(saving_pattern, "occasionally") ~ "Save occasionally",
+    str_detect(saving_pattern, "intend") ~ "Intend to save but rarely do",
+    str_detect(saving_pattern, "do not save") ~ "Do not save at all",
+    TRUE ~ saving_pattern
+  ))
+
+ggplot(saving_data, aes(x = reorder(saving_pattern, n), y = n,
+                         fill = saving_pattern)) +
+  geom_col(show.legend = FALSE) +
+  geom_text(aes(label = n), hjust = -0.2, size = 4) +
+  scale_fill_manual(values = c(
+    "Save fixed amount monthly" = "#2C7BB6",
+    "Save leftover at month end" = "#ABD9E9",
+    "Save occasionally" = "#FEE08B",
+    "Intend to save but rarely do" = "#FDAE61",
+    "Do not save at all" = "#D7191C"
+  )) +
+  scale_y_continuous(limits = c(0, 115)) +
+  coord_flip() +
+  labs(title = "Saving is the Strongest Financial Behavior — But Gaps Remain",
+       subtitle = "Self-reported saving pattern over the past 3 months (n = 144)",
+       x = NULL, y = "Number of Respondents")
+```
+
+```{r viz-gap-detail}
+gap_detail <- data.frame(
+  Behaviour = c("Expense Tracking", "Sticking to Budget",
+                "Budgeting Income", "Month-end Awareness", "Saving Consistently"),
+  Awareness = c(83, 84, 84, 83, 89),
+  Actual = c(28, 33, 47, 50, 62)
+) |> 
+  pivot_longer(cols = c(Awareness, Actual),
+               names_to = "Type", values_to = "Percent")
+
+ggplot(gap_detail, aes(x = reorder(Behaviour, Percent),
+                        y = Percent, fill = Type)) +
+  geom_col(position = "dodge") +
+  scale_fill_manual(values = c("Awareness" = "#2C7BB6", "Actual" = "#D7191C")) +
+  coord_flip() +
+  labs(title = "The Knowing-Doing Gap is Worst for Expense Tracking",
+       subtitle = "% aware of each behaviour vs % actually doing it consistently (n = 144)",
+       x = NULL, y = "Percentage of Respondents", fill = NULL)
+```
+
+The visualisation narrative tells one coherent story across ten plots. It opens with the headline gap, identifies the behavioral drivers, shows where the gap manifests in specific behaviors, confirms it is not a demographic issue, and closes with what customers want from a platform, connecting the problem diagnosis directly to a product opportunity for Moniepoint. The scatter plot is rendered as an interactive chart; hovering over any data point reveals that respondent's exact procrastination and consistency scores.
+
+---
+
+# Hypothesis Testing
+
+Hypothesis testing is the formal process of deciding whether a pattern observed in a sample is real or could plausibly have occurred by chance. Every test starts with a null hypothesis, the default assumption that nothing interesting is happening, and an alternative hypothesis that captures what the researcher expects to find. The test produces a p-value: the probability of observing a result at least as extreme as the one found, assuming the null hypothesis is true. By convention, a p-value below 0.05 means the result is statistically significant, unlikely enough to be chance that we reject the null hypothesis (Adi, 2026, Ch. 6).
+
+For this study, two hypotheses directly address the research questions. The first tests whether the awareness-consistency gap is statistically real or just sampling noise. The second tests whether procrastination is genuinely related to financial consistency or whether their apparent association could be coincidental. A paired t-test is appropriate for the first hypothesis because the same respondents provided both their awareness score and their consistency score; the scores are paired within each person, not independent. A Pearson correlation test is appropriate for the second because both variables are continuous and approximately normally distributed, satisfying the assumptions for parametric testing.
+
+## Hypothesis 1: The Awareness-Consistency Gap
+
+**H₀:** There is no difference between financial awareness scores and financial consistency scores.
+
+**H₁:** Financial awareness scores are significantly higher than financial consistency scores.
+
+**Assumption check:** The difference scores between awareness and consistency were checked for approximate normality. With n = 144, the Central Limit Theorem ensures the sampling distribution of the mean difference is approximately normal regardless of the underlying distribution, making the paired t-test appropriate.
+
+```{r hypothesis-1}
+t_result <- t.test(df$awareness_score, df$consistency_score, paired = TRUE)
+t_result
+
+mean_diff <- mean(df$awareness_score - df$consistency_score)
+sd_diff <- sd(df$awareness_score - df$consistency_score)
+cohens_d <- mean_diff / sd_diff
+cat("\nCohen's d (effect size):", round(cohens_d, 3))
+cat("\nInterpretation: d > 0.8 = large effect; d > 0.5 = medium; d > 0.2 = small")
+```
+
+A paired samples t-test confirmed that financial awareness scores (M = 4.34) were significantly higher than financial consistency scores (M = 3.23), t(143) = 13.23, p < .001, mean difference = 1.10, 95% CI [0.94, 1.27]. Cohen's d indicates a large effect size, confirming the gap is not only statistically significant but practically meaningful. The null hypothesis is rejected. This finding is further supported by behavioral data showing that 62% of respondents have tried to change a financial habit and returned to old patterns, confirming that the barrier is behavioral persistence, not lack of motivation or knowledge. For Moniepoint, this result means investing in financial education content to close the gap would be misallocated; the gap exists not because people don't know what to do but because they can't sustain doing it.
+
+## Hypothesis 2: Procrastination and Financial Consistency
+
+**H₀:** There is no relationship between procrastination tendency and financial management consistency.
+
+**H₁:** Higher procrastination tendency is associated with lower financial management consistency.
+
+**Assumption check:** Both procrastination_score and consistency_score are continuous variables. consistency_score has a near-symmetric distribution (skew = −0.18). procrastination_score is approximately symmetric (skew = 0.20). The linearity assumption was confirmed visually by the scatter plot in Section 6. Pearson correlation is appropriate.
+
+```{r hypothesis-2}
+cor_result <- cor.test(df$procrastination_score, df$consistency_score, 
+                       method = "pearson")
+cor_result
+```
+
+A Pearson correlation confirmed a strong negative relationship between procrastination tendency and financial management consistency, r(142) = −.58, p < .001. The correlation coefficient itself serves as the effect size; by convention, r = .58 represents a large effect. The null hypothesis is rejected. Respondents who score higher on procrastination tendency are substantially less likely to manage their finances consistently, independent of their level of financial knowledge or desire. For Moniepoint's product team, this result directly answers the question of where to focus first: any feature that reduces the effort required to initiate a financial task, whether starting a budget, reviewing a statement, or setting up a savings target, attacks the primary behavioral barrier this data identifies.
+
+---
+
+# Correlation Analysis
+
+Correlation analysis measures the strength and direction of the linear relationship between two variables. A Pearson correlation coefficient (r) ranges from -1 to +1. A value of +1 means the two variables move in perfect lockstep in the same direction. A value of -1 means they move in perfectly opposite directions. Zero means no linear relationship exists. In behavioural research, correlations above 0.5 in absolute value are generally considered strong, between 0.3 and 0.5 moderate, and below 0.3 weak (Adi, 2026, Ch. 8).
+
+Correlation analysis does not establish causation. Two variables can be strongly correlated because one causes the other, because both are caused by a third variable, or by coincidence in a small sample. The value of the correlation matrix in this analysis is not to prove that procrastination causes inconsistency, that requires experimental design, but to map the relationships between all seven composite scores simultaneously, identify which behavioral traits cluster together, and prioritise which relationships deserve deeper investigation through regression. For Moniepoint, this matters practically: if two traits are strongly correlated with each other, a product intervention targeting one will likely affect both.
+
+::: {.panel-tabset}
+
+## R
+
+```{r correlation-matrix-r}
+cor_data <- df |> 
+  select(consistency_score, awareness_score, self_control_score,
+         impulsivity_score, procrastination_score, avoidance_score,
+         delayed_gratification_score)
+
+cor_matrix <- cor(cor_data, use = "complete.obs")
+
+round(cor_matrix, 2) |> 
+  kable(caption = "Table 3: Correlation Matrix — All Composite Scores (R)") |> 
+  kable_styling(bootstrap_options = c("striped", "hover"), full_width = TRUE)
+```
+
+```{r correlation-heatmap-r}
+corrplot(cor_matrix,
+         method = "color",
+         type = "upper",
+         order = "hclust",
+         addCoef.col = "black",
+         tl.col = "black",
+         tl.srt = 45,
+         col = colorRampPalette(c("#D7191C", "white", "#2C7BB6"))(200),
+         title = "Correlation Matrix — Behavioral Traits and Financial Consistency",
+         mar = c(0,0,2,0))
+```
+
+## Python (equivalent code)
+
+The following Python code produces an equivalent correlation matrix using pandas and seaborn. This is shown for comparative purposes alongside the R implementation above.
+
+```python
+import pandas as pd
+import seaborn as sns
+import matplotlib.pyplot as plt
+
+df = pd.read_csv("mustard_clean.csv")
+
+cols = ["consistency_score", "awareness_score", "self_control_score",
+        "impulsivity_score", "procrastination_score", 
+        "avoidance_score", "delayed_gratification_score"]
+
+cor_matrix = df[cols].corr(method="pearson").round(2)
+
+print(cor_matrix)
+
+fig, ax = plt.subplots(figsize=(10, 8))
+sns.heatmap(cor_matrix, 
+            annot=True, 
+            cmap="RdBu_r",
+            center=0,
+            vmin=-1, vmax=1,
+            ax=ax)
+ax.set_title("Correlation Matrix — Behavioral Traits and Financial Consistency")
+plt.tight_layout()
+plt.show()
+```
+
+:::
+
+Three correlations warrant particular attention. First, procrastination demonstrated the strongest negative correlation with financial consistency (r = −.58), confirming it as the primary behavioral barrier. Second, procrastination and avoidance were strongly positively correlated (r = .59), suggesting these behaviors co-occur in the same individuals; a person who delays financial tasks is also likely to avoid confronting their financial reality altogether. Third, self-control and impulsivity were moderately correlated (r = .53), indicating overlapping constructs. Notably, financial awareness showed only a weak positive correlation with consistency (r = .25), providing statistical confirmation that knowledge alone does not drive financial behavior. The most plausibly causal relationship in this matrix is procrastination and consistency. Procrastination is a stable personality tendency measured independently of financial behavior; it is conceptually prior to the behavior it predicts. A longitudinal study tracking the same respondents over 12 months, measuring procrastination at baseline and consistency at follow-up, would provide stronger causal evidence.
+
+---
+
+# Regression Analysis
+
+Linear regression models the relationship between one outcome variable and one or more predictor variables by fitting a straight line through the data that minimises the total prediction error. Each predictor gets a coefficient, a number that describes how much the outcome variable changes for every one-unit increase in that predictor, holding all other predictors constant. The R-squared value tells you what proportion of the total variation in the outcome variable the model explains collectively (Adi, 2026, Ch. 9).
+
+Multiple regression, using several predictors simultaneously, is more informative than running separate correlations because it controls for the relationships between predictors. Procrastination correlates with avoidance (r = .59) and with self-control (r = .47). If you test each one separately against consistency, you cannot tell whether procrastination predicts consistency independently or only because it travels with the other traits. Regression answers that question by isolating each predictor's unique contribution. For Moniepoint, this distinction is operationally critical. A product team with limited engineering capacity needs to know whether to design for procrastination, for self-control, or for both, and regression gives a defensible, quantified answer to that question.
+
+```{r regression-model}
+model <- lm(consistency_score ~ procrastination_score + self_control_score +
+              impulsivity_score + avoidance_score + delayed_gratification_score,
+            data = df)
+
+summary(model)
+```
+
+```{r regression-diagnostics, fig.width=10, fig.height=8}
+par(mfrow = c(2,2), mar = c(4,4,2,1))
+plot(model)
+par(mfrow = c(1,1))
+```
+
+A multiple linear regression was conducted to examine whether the five behavioral trait scores predicted financial management consistency. The model was statistically significant overall (F(5, 138) = 17.71, p < .001) and explained 39.1% of the variance in consistency scores (R² = .391, Adjusted R² = .369).
+
+Procrastination was the strongest and most significant predictor (β = −.466, p < .001). For every one-point increase in procrastination tendency, financial consistency decreased by 0.47 points on the 5-point scale, holding all other traits constant. In plain terms for a non-technical manager: a customer who scores one point higher on procrastination than another is predicted to be nearly half a scale point less consistent in their financial management. That is a large enough difference to be visible in real behavior. Self-control was also a significant negative predictor (β = −.302, p = .006). Impulsivity showed a significant but positive coefficient (β = +.202, p = .046), a counterintuitive direction attributable to its high collinearity with self-control (r = .53) and should be interpreted with caution. Avoidance and delayed gratification were not significant independent predictors (p = .678 and p = .302 respectively).
+
+Regression diagnostics confirmed the model assumptions were reasonably met. The residuals vs fitted plot shows no systematic pattern. The Q-Q plot indicates minor non-normality in the tails, consistent with Likert-scale survey data. No observations exceeded Cook's distance thresholds, confirming no single respondent is unduly distorting the results.
+
+---
+
+# Integrated Findings and Recommendation
+
+The five analyses converge on a single, clear finding: Nigerian personal banking customers do not lack financial knowledge or desire. They lack behavioral consistency, and that inconsistency is driven primarily by procrastination tendency and, secondarily, by weak self-control.
+
+EDA established the headline finding: a 1.10-point gap between awareness and consistency that emerged directly from the data, not from a pre-specified hypothesis. Visualisation translated that gap into a narrative across ten charts, showing not only that the gap exists but where it is worst (expense tracking, at 55 percentage points) and what drives it (procrastination, visible in the steep downward scatter plot). Hypothesis testing formally proved the gap is real and not sampling noise (t(143) = 13.23, p < .001, Cohen's d = large effect) and that procrastination's relationship with inconsistency is statistically confirmed (r = −.58, p < .001). Correlation analysis mapped the full behavioral structure, revealing that procrastination and avoidance co-occur in the same individuals and that awareness is essentially unrelated to consistency (r = .25). Regression isolated procrastination as the dominant independent predictor (β = −.466, p < .001), with the five traits together explaining 39.1% of variance in consistency.
+
+The platform data adds a critical commercial dimension. 60% of respondents chose their primary bank because of salary inertia or habit, not product quality. Only 10% chose based on features. All six proposed behavioral features rated above 4.0 out of 5.0, and 90% of respondents expressed openness to a personality-adaptive banking app.
+
+The recommendation for Moniepoint: design for the procrastinator, not the disciplined user. Specifically, implement automated defaults that execute financial behaviors without requiring active initiation (automated savings, auto-categorised spending); deploy friction-reducing reminders timed to behavioral patterns rather than calendar schedules; build visible progress tracking for financial goals; and develop a weekly plain-language financial health summary. These are not nice-to-have features; they are direct compensatory mechanisms for the dominant behavioral barrier this research identified.
+
+---
+
+# Limitations and Further Work
+
+This study has several limitations worth acknowledging. The sample skews heavily toward 25-34 year olds (62%), employed full-time (81%), and based in South West Nigeria (78%), limiting generalisability to older, rural, or lower-income segments. The cross-sectional design means causality cannot be established; procrastination predicts lower consistency but the regression cannot rule out reverse causation or confounding variables.
+
+The behavioral scales were self-reported, introducing social desirability bias; respondents may have understated problematic traits. The remaining 60.9% of variance in consistency unexplained by the model suggests important predictors outside this study, including income volatility, financial obligations, economic environment, and trust in financial institutions.
+
+Future work should include a longitudinal design tracking the same customers over 6-12 months, a broader geographic sample across Nigeria, and direct behavioral data from Moniepoint's transaction records to validate survey-reported consistency against actual account behavior.
+
+---
+
+# References
+
+Adi, B. (2026). Exploratory data analysis. In *AI-powered business analytics: A practical textbook for data-driven decision making* (Ch. 4). Lagos Business School / markanalytics.online. https://markanalytics.online
+
+Adi, B. (2026). Data visualisation for business. In *AI-powered business analytics: A practical textbook for data-driven decision making* (Ch. 5). Lagos Business School / markanalytics.online. https://markanalytics.online
+
+Adi, B. (2026). Hypothesis testing fundamentals. In *AI-powered business analytics: A practical textbook for data-driven decision making* (Ch. 6). Lagos Business School / markanalytics.online. https://markanalytics.online
+
+Adi, B. (2026). Correlation and association. In *AI-powered business analytics: A practical textbook for data-driven decision making* (Ch. 8). Lagos Business School / markanalytics.online. https://markanalytics.online
+
+Adi, B. (2026). Simple and multiple linear regression. In *AI-powered business analytics: A practical textbook for data-driven decision making* (Ch. 9). Lagos Business School / markanalytics.online. https://markanalytics.online
+
+Allaire, J. J., Teague, C., Scheidegger, C., Xie, Y., & Dervieux, C. (2022). *Quarto* (Version 1.x) [Computer software]. https://doi.org/10.5281/zenodo.5960048
+
+Fox, J., & Weisberg, S. (2019). *An R companion to applied regression* (3rd ed.). Sage. https://www.john-fox.ca/Companion/
+
+Lay, C. H. (1986). At last, my research article on procrastination. *Journal of Research in Personality, 20*(4), 474–495.
+
+Lynam, D. R., Smith, G. T., Whiteside, S. P., & Cyders, M. A. (2006). *The UPPS-P: Assessing five personality pathways to impulsive behavior.* Purdue University.
+
+R Core Team. (2024). *R: A language and environment for statistical computing.* R Foundation for Statistical Computing. https://www.R-project.org/
+
+Revelle, W. (2026). *psych: Procedures for psychological, psychometric, and personality research* (R package version 2.6.3). Northwestern University. https://CRAN.R-project.org/package=psych
+
+Sievert, C. (2020). *Interactive web-based data visualization with R, plotly, and shiny.* Chapman and Hall/CRC. https://plotly-r.com
+
+Tangney, J. P., Baumeister, R. F., & Boone, A. L. (2004). High self-control predicts good adjustment, less pathology, better grades, and interpersonal success. *Journal of Personality, 72*(2), 271–324.
+
+Udeze, C. (2026). *Behavioral barriers to financial consistency among Nigerian personal banking customers* [Dataset]. Collected from Moniepoint, Lagos, Nigeria. Data available on request from the author.
+
+Wei, T., & Simko, V. (2024). *R package 'corrplot': Visualization of a correlation matrix* (Version 0.95). https://github.com/taiyun/corrplot
+
+Wickham, H. (2016). *ggplot2: Elegant graphics for data analysis.* Springer. https://doi.org/10.1007/978-3-319-24277-4
+
+Wickham, H., Averick, M., Bryan, J., Chang, W., McGowan, L., François, R., Grolemund, G., Hayes, A., Henry, L., Hester, J., Kuhn, M., Pedersen, T. L., Miller, E., Bache, S. M., Müller, K., Ooms, J., Robinson, D., Seidel, D. P., Spinu, V., … Yutani, H. (2019). Welcome to the tidyverse. *Journal of Open Source Software, 4*(43), 1686. https://doi.org/10.21105/joss.01686
+
+Wickham, H., Pedersen, T., & Seidel, D. (2025). *scales: Scale functions for visualization* (R package version 1.4.0). https://CRAN.R-project.org/package=scales
+
+Zhu, H. (2024). *kableExtra: Construct complex table with 'kable' and pipe syntax* (R package version 1.4.0). https://doi.org/10.32614/CRAN.package.kableExtra
+
+---
+
+# Appendix: AI Usage Statement
+
+Claude (Anthropic) was used as a coding assistant during the analysis phase of this project, primarily for generating and debugging R code for data cleaning, composite score construction, visualisation, and statistical testing. All analytical decisions, including variable selection, hypothesis formulation, interpretation of results, and the recommendation, were made independently by the author. Every line of code was reviewed, understood, and executed by the author, and the author is able to explain and defend all outputs in the viva examination.
+````
